@@ -46,7 +46,6 @@ helpers do
   end
   
   def winner(msg) #use this type to dry up code
-    @play_again = true
     @hit_or_stay_buttons = false
     @success = "<strong>#{session[:player_name]} wins!</strong> #{msg}"
   end
