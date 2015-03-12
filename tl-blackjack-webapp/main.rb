@@ -51,19 +51,21 @@ helpers do
   def winner!(msg)
     @play_again = true
     @hit_or_stay_buttons = false
-    @success = "<strong>#{session[:player_name]} wins!</strong> #{msg}"
+    session[:player_money] += session[:player_bet]
+    @success = "<strong>#{session[:player_name]} wins!</strong> #{msg} #{session[:player_name]} now has $#{session[:player_money]}."
   end
   
   def loser!(msg)
     @play_again = true
     @hit_or_stay_buttons = false
-    @error = "<strong>#{session[:player_name]} loses.</strong> #{msg}"
+    session[:player_money] -= session[:player_bet]
+    @error = "<strong>#{session[:player_name]} loses.</strong> #{msg} #{session[:player_name]} now has $#{session[:player_money]}."
   end
   
   def tie!(msg)
     @play_again = true
     @hit_or_stay_buttons = false
-    @success = "<strong>#{session[:player_name]} and the dealer tied!</strong> #{msg}"
+    @success = "<strong>#{session[:player_name]} and the dealer tied!</strong> #{msg} #{session[:player_name]} now has $#{session[:player_money]}."
   end
   
 end
@@ -73,11 +75,7 @@ before do
 end
 
 get '/'do
-  if session[:player_name]
-    redirect '/game'
-  else
-    redirect '/new_player'
-  end
+  erb :intro
 end
 
 get '/new_player' do
@@ -90,6 +88,16 @@ post '/new_player' do
     halt erb(:new_player)
   end
   session[:player_name] = params[:player_name]
+  session[:player_money] = 200
+  redirect '/place_bet'
+end
+
+get '/place_bet' do
+    erb :place_bet
+end
+
+post '/place_bet' do
+  session[:player_bet] = params[:player_bet].to_i
   redirect '/game'
 end
 
@@ -117,11 +125,12 @@ end
 post '/game/player/hit' do
   session[:player_cards] << session[:deck].pop
   player_total = calculate_total(session[:player_cards])
+  
   if player_total == BLACKJACK
     winner!("#{session[:player_name]} hit balckjack.")
     @hit_or_stay_buttons = false
   elsif player_total > BLACKJACK
-    loser!("#{session[:player_name]} busted.")
+    loser!("#{session[:player_name]} busted with #{player_total}.")
     @hit_or_stay_buttons = false
     
   end
@@ -138,11 +147,11 @@ get '/game/dealer' do
   @hit_or_stay_buttons = false
   
   dealer_total = calculate_total(session[:dealer_cards])
-  
+
   if dealer_total == BLACKJACK
     loser!("The dealer hit blackjack.")
   elsif dealer_total > BLACKJACK
-    winner!("Congratulations, dealer busted. #{session[:player_name]} won!")
+    winner!("Congratulations, dealer busted with #{dealer_total}. #{session[:player_name]} won!")
   elsif dealer_total >= DEALER_HIT
     redirect '/game/compare'
   else
