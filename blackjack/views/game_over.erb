@@ -1,2 +1,3 @@
-<h3>Thanks for playing!</h3>
-<p>Try again next time. <a href='/new_player'>Next player?</a></p>
+<h3>Oh no!, <%= session[:player_name] %> lost.</h3>
+<h4>With $<%= session[:player_money] %>, <%= session[:player_name] %> failed to take all the houses money.</h4>
+<p>Thanks for playing! Try again next time. <br/><a href='/new_player' class='btn btn-primary'>Anyone else up to the challenge?</a></p>

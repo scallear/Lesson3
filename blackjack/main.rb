@@ -4,9 +4,9 @@ require 'sinatra'
 use Rack::Session::Cookie, :key => 'rack.session',
                            :path => '/',
                            :secret => 'random_string' 
-#constants
 
-#helpers
+BLACKJACK = 21
+DEALER_HIT = 17
 
 helpers do
   def calculate_total(cards)
@@ -48,89 +48,105 @@ helpers do
     "<img src='/images/cards/#{suit}_#{value}.jpg' class='card'>"
   end
   
+  def end_game
+    if session[:player_money] <= 0
+      redirect '/game_over'
+    elsif session[:player_money] >= 500
+      redirect '/game_win'
+    end
+  end
+  
   def winner!(msg)
+    session[:player_money] += session[:player_bet]
+    end_game
     @play_again = true
     @hit_or_stay_buttons = false
-    @success = "<strong>#{session[:player_name]} wins!</strong> #{msg}"
+    @success = "<strong>#{session[:player_name]} wins!</strong> #{msg} #{session[:player_name]} now has $#{session[:player_money]}."
   end
   
   def loser!(msg)
+    session[:player_money] -= session[:player_bet]
+    end_game
     @play_again = true
     @hit_or_stay_buttons = false
-    @error = "<strong>#{session[:player_name]} loses.</strong> #{msg}"
+    @error = "<strong>#{session[:player_name]} loses.</strong> #{msg} #{session[:player_name]} now has $#{session[:player_money]}."
   end
   
   def tie!(msg)
+    end_game
     @play_again = true
     @hit_or_stay_buttons = false
-    @success = "<strong>#{session[:player_name]} and the dealer tied!</strong> #{msg}"
+    @success = "<strong>#{session[:player_name]} and the dealer tied!</strong> #{msg} #{session[:player_name]} now has $#{session[:player_money]}."
   end
+  
 end
-
-#filters
 
 before do
   @hit_or_stay_buttons = true
-  @show_money = true
 end
 
-#routes
-
-get '/' do
-  @show_money = false
+get '/'do
   erb :intro
 end
 
 get '/new_player' do
-  @show_money = false
   erb :new_player
 end
 
 post '/new_player' do
-  if params[:player_name].empty? 
-    @error = "You must enter your name to continue."
+  if params[:player_name].empty?
+    @error = "Name is required"
     halt erb(:new_player)
   end
   session[:player_name] = params[:player_name]
+  session[:player_money] = 200
   redirect '/place_bet'
 end
 
 get '/place_bet' do
-  @show_money = false
-  session[:player_money] = 200
-  erb :place_bet
+    erb :place_bet
 end
 
 post '/place_bet' do
-  session[:player_money] -= params[:player_bet].to_i
+  session[:player_bet] = params[:player_bet].to_i
   redirect '/game'
 end
 
 get '/game' do
+  #deck
   suit = ['D', 'H', 'C', 'S']
   face = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A']
   session[:deck] = suit.product(face).shuffle!
   
+  #player_cards
   session[:player_cards] = []
   
+  #dealer_cards
   session[:dealer_cards] = []
   
+  #deal
   session[:player_cards] << session[:deck].pop
   session[:dealer_cards] << session[:deck].pop
   session[:player_cards] << session[:deck].pop
   session[:dealer_cards] << session[:deck].pop
-  
+
+  if calculate_total(session[:player_cards]) == BLACKJACK
+    winner!("#{session[:player_name]} hit balckjack.")
+    @hit_or_stay_buttons = false
+  end
+
   erb :game
 end
 
 post '/game/player/hit' do
   session[:player_cards] << session[:deck].pop
   player_total = calculate_total(session[:player_cards])
+  
   if player_total == BLACKJACK
     winner!("#{session[:player_name]} hit balckjack.")
     @hit_or_stay_buttons = false
   elsif player_total > BLACKJACK
-    loser!("#{session[:player_name]} busted.")
+    loser!("#{session[:player_name]} busted with #{player_total}.")
     @hit_or_stay_buttons = false
     
   end
@@ -145,13 +161,14 @@ end
 
 get '/game/dealer' do
   @hit_or_stay_buttons = false
+  session[:turn] = "dealer"
   
   dealer_total = calculate_total(session[:dealer_cards])
-  
+
   if dealer_total == BLACKJACK
     loser!("The dealer hit blackjack.")
   elsif dealer_total > BLACKJACK
-    winner!("Congratulations, dealer busted. #{session[:player_name]} won!")
+    winner!("Congratulations, dealer busted with #{dealer_total}. #{session[:player_name]} won!")
   elsif dealer_total >= DEALER_HIT
     redirect '/game/compare'
   else
@@ -185,4 +202,8 @@ end
 
 get '/game_over' do
   erb :game_over
+end
+
+get '/game_win' do
+  erb :game_win
 end
