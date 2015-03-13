@@ -134,7 +134,9 @@ get '/game' do
     winner!("#{session[:player_name]} hit balckjack.")
     @hit_or_stay_buttons = false
   end
-
+  
+  session[:turn] = "player"
+  
   erb :game
 end
 
@@ -144,12 +146,10 @@ post '/game/player/hit' do
   
   if player_total == BLACKJACK
     winner!("#{session[:player_name]} hit balckjack.")
-    @hit_or_stay_buttons = false
   elsif player_total > BLACKJACK
     loser!("#{session[:player_name]} busted with #{player_total}.")
-    @hit_or_stay_buttons = false
-    
   end
+  
   erb :game
 end
 
@@ -160,15 +160,15 @@ post '/game/player/stay' do
 end
 
 get '/game/dealer' do
-  @hit_or_stay_buttons = false
   session[:turn] = "dealer"
+  @hit_or_stay_buttons = false
   
   dealer_total = calculate_total(session[:dealer_cards])
 
   if dealer_total == BLACKJACK
     loser!("The dealer hit blackjack.")
   elsif dealer_total > BLACKJACK
-    winner!("Congratulations, dealer busted with #{dealer_total}. #{session[:player_name]} won!")
+    winner!("The dealer busted with #{dealer_total}.")
   elsif dealer_total >= DEALER_HIT
     redirect '/game/compare'
   else

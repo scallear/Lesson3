@@ -4,13 +4,16 @@
 
 <p>
   <% if @play_again %>
-    <strong>Play Again?</strong>
+    <strong>Continue?</strong>
     <a href='/place_bet' class='btn btn-primary'>Yes</a>
     <a href='/game_over' class='btn'>No</a>
   <% end %>
 </p>
 
 <div class='well'>
+  <h3>Dealer's Cards</h3>
+  <h1><%= "#{session[:turn]}" %></h1>
+  
   <% session[:dealer_cards].each_with_index do |card, i| %>
     <% if session[:turn] != "dealer" && i == 0 %>
       <img src="/images/cards/cover.jpg" class='card'>
